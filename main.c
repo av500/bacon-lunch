@@ -11,6 +11,16 @@
 static unsigned char PORT = 0;
 static struct ftdi_context ftdic;
 
+enum {
+	CPU_LOAD,
+	COLOR_CYCLE,
+};
+
+static int mode  = CPU_LOAD;
+static int speed = 100;
+static int beat;
+static int debug;
+
 static void writebyte( int byte, unsigned char *out, int *count )
 {
 	int i;
@@ -73,7 +83,6 @@ static unsigned int colors[][3] = {
 static int color = 0;
 static int step  = 0;
 static int level = MAX_LEVEL;
-static int debug = 0;
 
 static void change_color( void )
 {
@@ -131,15 +140,6 @@ static void usage( void )
 	fprintf(stderr, "  -h        help\n");
 	fprintf(stderr, "\n");
 }
-
-enum {
-	CPU_LOAD,
-	COLOR_CYCLE,
-};
-
-static int mode  = CPU_LOAD;
-static int speed = 100;
-static int beat;
 
 void parse_opt( int argc, char **argv )
 {
