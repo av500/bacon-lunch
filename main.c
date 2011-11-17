@@ -14,6 +14,7 @@ static struct ftdi_context ftdic;
 enum {
 	CPU_LOAD,
 	COLOR_CYCLE,
+	SET_RGB,
 };
 
 static int mode  = CPU_LOAD;
@@ -21,6 +22,7 @@ static int speed = 100;
 static int beat;
 static int simulate;
 static int debug;
+static int rgb;
 
 static void writebyte( int byte, unsigned char *out, int *count )
 {
@@ -129,19 +131,20 @@ int get_load( int interval )
 static void usage( void )
 {
 	fprintf(stderr, "bacon [OPTION..]\n");
-	fprintf(stderr, "  -l        cpu load\n");
-	fprintf(stderr, "  -b        heart beat\n");
-	fprintf(stderr, "  -c        color cycle\n");
-	fprintf(stderr, "  -s SPEED  cycle speed\n");
-	fprintf(stderr, "  -d        debug output\n");
-	fprintf(stderr, "  -h        help\n");
+	fprintf(stderr, "  -l          cpu load\n");
+	fprintf(stderr, "    -b        heart beat\n");
+	fprintf(stderr, "  -c          color cycle\n");
+	fprintf(stderr, "    -s SPEED  cycle speed\n");
+	fprintf(stderr, "  -r RRGGBB   set (hex) RGB value\n\n");
+	fprintf(stderr, "  -d          debug output\n");
+	fprintf(stderr, "  -h          help\n");
 	fprintf(stderr, "\n");
 }
 
 void parse_opt( int argc, char **argv )
 {
 	int opt;
-	while ((opt = getopt(argc, argv, "lcs:Sdb")) != -1) {
+	while ((opt = getopt(argc, argv, "lcs:r:Sdb")) != -1) {
 		switch (opt) {
 		case 'l':
 			mode = CPU_LOAD;
@@ -151,6 +154,10 @@ void parse_opt( int argc, char **argv )
 			break;
 		case 's':
 			speed = atoi(optarg);
+			break;
+		case 'r':
+			mode = SET_RGB;
+			sscanf(optarg, "%06x", &rgb );
 			break;
 		case 'S':
 			simulate = 1;
@@ -171,7 +178,7 @@ void parse_opt( int argc, char **argv )
 		speed = 1;
 		
 	if( debug )
-		printf("mode %d  speed %d  beat %d\n", mode, speed, beat);
+		printf("mode %d  speed %d  beat %d  rgb %06X\n", mode, speed, beat, rgb);
 }
 
 static int cpu_load;
@@ -263,6 +270,9 @@ int main( int argc, char **argv )
 		break;
 	case COLOR_CYCLE:
 		do_color_cycle();
+		break;
+	case SET_RGB:
+		rgb_set( (rgb >> 16) & 0xFF, (rgb >> 8) & 0xFF, rgb & 0xFF );
 		break;
 	}
 
