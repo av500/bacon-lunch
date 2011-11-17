@@ -258,7 +258,9 @@ int main( int argc, char **argv )
 		}	
 	}
 
-	if( !simulate ) {
+	if( simulate ) {
+		printf("\n");
+	} else {
 		int ret;
 		if ( ( ret = ftdi_usb_close( &ftdic ) ) < 0 ) {
 			fprintf( stderr, "unable to close ftdi device: %d (%s)\n", ret, ftdi_get_error_string( &ftdic ) );
