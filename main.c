@@ -218,6 +218,14 @@ void do_cpu_load( void )
 	}
 }
 
+void do_color_cycle( void )
+{
+	for ( ;; ) {
+		change_color(  );
+		usleep( 1000000 / speed );
+	}	
+}
+
 int main( int argc, char **argv )
 {
 	parse_opt( argc, argv );
@@ -249,13 +257,13 @@ int main( int argc, char **argv )
 	
 	rgb_set( 0, 0, 0 );
 
-	if( mode == CPU_LOAD ) {
+	switch( mode ) {
+	case CPU_LOAD:
 		do_cpu_load();
-	} else {
-		for ( ;; ) {
-			change_color(  );
-			usleep( 1000000 / speed );
-		}	
+		break;
+	case COLOR_CYCLE:
+		do_color_cycle();
+		break;
 	}
 
 	if( simulate ) {
