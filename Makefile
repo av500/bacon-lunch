@@ -6,7 +6,7 @@ OBJS   = main.o
 all: bacon
 
 bacon: $(OBJS)
-	$(CC) $(CFLAGS)  -lftdi -o $@ $(OBJS)
+	$(CC) $(CFLAGS)  -lftdi -lpthread -lm -o $@ $(OBJS)
 
 %.o: %.c
 	$(CC) $(CFLAGS)  -c $<

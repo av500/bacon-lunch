@@ -2,6 +2,8 @@
 #include <stdint.h>
 #include <unistd.h>
 #include <ftdi.h>
+#include <pthread.h>
+#include <math.h>
 
 #define CLOCK 0x01		// ORANGE
 #define DATA  0x02		// YELLOW
@@ -71,6 +73,7 @@ static unsigned int colors[][3] = {
 static int color = 0;
 static int step  = 0;
 static int level = MAX_LEVEL;
+static int debug = 0;
 
 static void change_color( void )
 {
@@ -117,21 +120,14 @@ int get_load( int interval )
 	}
 }
 
-void set_load( int load )
-{
-	int r = 255 *         load   / 100;
-	int g = 255 * ( 100 - load ) / 100;
-	int b = 0;
-
-	rgb_set( r, g, b );
-}
-
 static void usage( void )
 {
 	fprintf(stderr, "bacon [OPTION..]\n");
 	fprintf(stderr, "  -l        cpu load\n");
+	fprintf(stderr, "  -b        heart beat\n");
 	fprintf(stderr, "  -c        color cycle\n");
 	fprintf(stderr, "  -s SPEED  cycle speed\n");
+	fprintf(stderr, "  -d        debug output\n");
 	fprintf(stderr, "  -h        help\n");
 	fprintf(stderr, "\n");
 }
@@ -143,11 +139,12 @@ enum {
 
 static int mode  = CPU_LOAD;
 static int speed = 100;
+static int beat;
 
 void parse_opt( int argc, char **argv )
 {
 	int opt;
-	while ((opt = getopt(argc, argv, "lcs:")) != -1) {
+	while ((opt = getopt(argc, argv, "lcs:db")) != -1) {
 		switch (opt) {
 		case 'l':
 			mode = CPU_LOAD;
@@ -158,6 +155,12 @@ void parse_opt( int argc, char **argv )
 		case 's':
 			speed = atoi(optarg);
 			break;
+		case 'd':
+			debug = 1;
+			break;
+		case 'b':
+			beat = 1;
+			break;
 		default: /* '?' */
 			usage();
 			exit(-1);
@@ -167,7 +170,52 @@ void parse_opt( int argc, char **argv )
 	if( !speed )
 		speed = 1;
 		
-	printf("mode %d  speed %d\n", mode, speed);
+	if( debug )
+		printf("mode %d  speed %d  beat %d\n", mode, speed, beat);
+}
+
+static int cpu_load;
+
+void set_load( int load, int blue )
+{
+	int r = 255 *         load   / 100;
+	int g = 255 * ( 100 - load ) / 100;
+
+	rgb_set( r, g, blue );
+}
+
+void *get_cpu_load( void *data ) 
+{
+	int wait = (int)data;
+	
+	for ( ;; ) {
+		cpu_load = get_load( wait );
+	}
+	
+	return NULL;	
+}
+
+void do_cpu_load( void )
+{
+	int load = 0;
+	int tick;
+	pthread_t cpu_thread;
+
+	pthread_create( &cpu_thread, NULL, get_cpu_load, (void*)300000);
+	
+	for ( ;; ) {
+		if( cpu_load > load ) {
+			load ++;
+		}
+		else if ( cpu_load < load ) {
+			load --;
+		}	
+		int blue = beat ? 8 * (sin( (double)tick++ / 10 ) + 1) : 0;
+		if( debug ) 
+			printf( "cpu load: %3d%%  %3d%%  %3d\n", cpu_load, load, blue );
+		set_load( load, blue );
+		usleep( 10000 );
+	}
 }
 
 int main( int argc, char **argv )
@@ -189,21 +237,20 @@ int main( int argc, char **argv )
 	if ( ftdic.type == TYPE_R ) {
 		unsigned int chipid;
 		if( !ftdi_read_chipid( &ftdic, &chipid ) ) {
-			printf( "FTDI chipid: %X\n", chipid );
+			if( debug )
+				printf( "FTDI chipid: %X\n", chipid );
 		}
 	}
 
 	rgb_init();
 
-	for ( ;; ) {
-		if( mode == CPU_LOAD ) {
-			int load = get_load( 300000 );
-			printf( "cpu load: %2d%%\n", load );
-			set_load( load );
-		} else {
+	if( mode == CPU_LOAD ) {
+		do_cpu_load();
+	} else {
+		for ( ;; ) {
 			change_color(  );
 			usleep( 1000000 / speed );
-		}
+		}	
 	}
 
 	if ( ( ret = ftdi_usb_close( &ftdic ) ) < 0 ) {
