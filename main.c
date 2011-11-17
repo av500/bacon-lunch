@@ -19,6 +19,7 @@ enum {
 static int mode  = CPU_LOAD;
 static int speed = 100;
 static int beat;
+static int simulate;
 static int debug;
 
 static void writebyte( int byte, unsigned char *out, int *count )
@@ -45,6 +46,10 @@ static void writebyte( int byte, unsigned char *out, int *count )
 
 static void rgb_set( int r, int g, int b )
 {
+	if( simulate ) {
+		printf("\rR %3d  G %3d  B %3d  ", r, g, b );
+		return;
+	}
 	unsigned char out[256];
 	int count = 0;
 
@@ -53,14 +58,6 @@ static void rgb_set( int r, int g, int b )
 	writebyte( b, out, &count );
 
 	ftdi_write_data( &ftdic, out, count );
-}
-
-static void rgb_init( void )
-{
-	/* Enable bitbang mode with a single output line */
-	ftdi_enable_bitbang( &ftdic, CLOCK | DATA );
-
-	rgb_set( 0, 0, 0 );
 }
 
 #define RED 255
@@ -144,7 +141,7 @@ static void usage( void )
 void parse_opt( int argc, char **argv )
 {
 	int opt;
-	while ((opt = getopt(argc, argv, "lcs:db")) != -1) {
+	while ((opt = getopt(argc, argv, "lcs:Sdb")) != -1) {
 		switch (opt) {
 		case 'l':
 			mode = CPU_LOAD;
@@ -154,6 +151,9 @@ void parse_opt( int argc, char **argv )
 			break;
 		case 's':
 			speed = atoi(optarg);
+			break;
+		case 'S':
+			simulate = 1;
 			break;
 		case 'd':
 			debug = 1;
@@ -222,27 +222,32 @@ int main( int argc, char **argv )
 {
 	parse_opt( argc, argv );
 	
-	int ret;
-	if ( ftdi_init( &ftdic ) < 0 ) {
-		fprintf( stderr, "ftdi_init failed\n" );
-		return -1;
-	}
+	if( !simulate ) {
+		if ( ftdi_init( &ftdic ) < 0 ) {
+			fprintf( stderr, "ftdi_init failed\n" );
+			return -1;
+		}
 
-	if ( ( ret = ftdi_usb_open_desc( &ftdic, 0x0403, 0x6001, "TTL232R-3V3", NULL ) ) < 0 ) {
-		fprintf( stderr, "unable to open ftdi device: %d (%s)\n", ret, ftdi_get_error_string( &ftdic ) );
-		return -1;
+		int ret;
+		if ( ( ret = ftdi_usb_open_desc( &ftdic, 0x0403, 0x6001, "TTL232R-3V3", NULL ) ) < 0 ) {
+			fprintf( stderr, "unable to open ftdi device: %d (%s)\n", ret, ftdi_get_error_string( &ftdic ) );
+			return -1;
+		}
+
+		// Read out FTDIChip-ID of R type chips
+		if ( ftdic.type == TYPE_R ) {
+			unsigned int chipid;
+			if( !ftdi_read_chipid( &ftdic, &chipid ) ) {
+				if( debug )
+					printf( "FTDI chipid: %X\n", chipid );
+			}
+		}
+
+		/* Enable bitbang mode with a single output line */
+		ftdi_enable_bitbang( &ftdic, CLOCK | DATA );
 	}
 	
-	// Read out FTDIChip-ID of R type chips
-	if ( ftdic.type == TYPE_R ) {
-		unsigned int chipid;
-		if( !ftdi_read_chipid( &ftdic, &chipid ) ) {
-			if( debug )
-				printf( "FTDI chipid: %X\n", chipid );
-		}
-	}
-
-	rgb_init();
+	rgb_set( 0, 0, 0 );
 
 	if( mode == CPU_LOAD ) {
 		do_cpu_load();
@@ -253,12 +258,15 @@ int main( int argc, char **argv )
 		}	
 	}
 
-	if ( ( ret = ftdi_usb_close( &ftdic ) ) < 0 ) {
-		fprintf( stderr, "unable to close ftdi device: %d (%s)\n", ret, ftdi_get_error_string( &ftdic ) );
-		return -1;
+	if( !simulate ) {
+		int ret;
+		if ( ( ret = ftdi_usb_close( &ftdic ) ) < 0 ) {
+			fprintf( stderr, "unable to close ftdi device: %d (%s)\n", ret, ftdi_get_error_string( &ftdic ) );
+			return -1;
+		}
+
+		ftdi_deinit( &ftdic );
 	}
-
-	ftdi_deinit( &ftdic );
-
+	
 	return 0;
 }
