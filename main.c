@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdint.h>
+#include <unistd.h>
 #include <ftdi.h>
 
 #define CLOCK 0x01		// ORANGE
@@ -125,8 +126,54 @@ void set_load( int load )
 	rgb_set( r, g, b );
 }
 
-int main( void )
+static void usage( void )
 {
+	fprintf(stderr, "bacon [OPTION..]\n");
+	fprintf(stderr, "  -l        cpu load\n");
+	fprintf(stderr, "  -c        color cycle\n");
+	fprintf(stderr, "  -s SPEED  cycle speed\n");
+	fprintf(stderr, "  -h        help\n");
+	fprintf(stderr, "\n");
+}
+
+enum {
+	CPU_LOAD,
+	COLOR_CYCLE,
+};
+
+static int mode  = CPU_LOAD;
+static int speed = 100;
+
+void parse_opt( int argc, char **argv )
+{
+	int opt;
+	while ((opt = getopt(argc, argv, "lcs:")) != -1) {
+		switch (opt) {
+		case 'l':
+			mode = CPU_LOAD;
+			break;
+		case 'c':
+			mode = COLOR_CYCLE;
+			break;
+		case 's':
+			speed = atoi(optarg);
+			break;
+		default: /* '?' */
+			usage();
+			exit(-1);
+		}
+	}
+
+	if( !speed )
+		speed = 1;
+		
+	printf("mode %d  speed %d\n", mode, speed);
+}
+
+int main( int argc, char **argv )
+{
+	parse_opt( argc, argv );
+	
 	int ret;
 	if ( ftdi_init( &ftdic ) < 0 ) {
 		fprintf( stderr, "ftdi_init failed\n" );
@@ -149,14 +196,14 @@ int main( void )
 	rgb_init();
 
 	for ( ;; ) {
-#if 1
-		int load = get_load( 300000 );
-		printf( "cpu load: %2d%%\n", load );
-		set_load( load );
-#else
-		change_color(  );
-		usleep( 10000 );
-#endif
+		if( mode == CPU_LOAD ) {
+			int load = get_load( 300000 );
+			printf( "cpu load: %2d%%\n", load );
+			set_load( load );
+		} else {
+			change_color(  );
+			usleep( 1000000 / speed );
+		}
 	}
 
 	if ( ( ret = ftdi_usb_close( &ftdic ) ) < 0 ) {
