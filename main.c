@@ -22,7 +22,9 @@ static int speed = 100;
 static int beat;
 static int simulate;
 static int debug;
-static int rgb;
+static int red   = 255;
+static int green = 255;
+static int blue  = 255;
 
 static void writebyte( int byte, unsigned char *out, int *count )
 {
@@ -156,8 +158,14 @@ void parse_opt( int argc, char **argv )
 			speed = atoi(optarg);
 			break;
 		case 'r':
-			mode = SET_RGB;
 			sscanf(optarg, "%06x", &rgb );
+			red   = (rgb >> 16) & 0xFF;
+			green = (rgb >>  8) & 0xFF;
+			blue  =  rgb        & 0xFF;
+			break;
+		case 'o':
+			mode = SET_RGB;
+			break;
 			break;
 		case 'S':
 			simulate = 1;
@@ -272,7 +280,9 @@ int main( int argc, char **argv )
 		do_color_cycle();
 		break;
 	case SET_RGB:
-		rgb_set( (rgb >> 16) & 0xFF, (rgb >> 8) & 0xFF, rgb & 0xFF );
+		rgb_set( red, green, blue );
+		usleep( 100000 );
+		rgb_set( red, green, blue );
 		break;
 	}
 
