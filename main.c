@@ -198,7 +198,8 @@ void parse_opt( int argc, char **argv )
 		speed = 1;
 		
 	if( debug )
-		printf("mode %d  speed %d  beat %d  rgb %06X\n", mode, speed, beat, rgb);
+		printf("mode %d  speed %d  beat %d  rgb %02X %02X %02X\n", 
+		        mode, speed, beat, red, green, blue);
 }
 
 static int cpu_load;
