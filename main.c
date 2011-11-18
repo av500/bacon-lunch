@@ -155,7 +155,7 @@ void parse_opt( int argc, char **argv )
 {
 	int opt;
 	int rgb;
-	while ((opt = getopt(argc, argv, "lcs:r:poSdb")) != -1) {
+	while ((opt = getopt(argc, argv, "lcs:r:poSdbh")) != -1) {
 		switch (opt) {
 		case 'l':
 			mode = CPU_LOAD;
@@ -187,6 +187,7 @@ void parse_opt( int argc, char **argv )
 		case 'b':
 			beat = 1;
 			break;
+		case 'h':
 		default: /* '?' */
 			usage();
 			exit(-1);
