@@ -135,14 +135,19 @@ int get_load( int interval )
 
 static void usage( void )
 {
-	fprintf(stderr, "bacon [OPTION..]\n");
-	fprintf(stderr, "  -l          cpu load\n");
-	fprintf(stderr, "    -b        heart beat\n");
-	fprintf(stderr, "  -c          color cycle\n");
-	fprintf(stderr, "    -s SPEED  cycle speed\n");
-	fprintf(stderr, "  -r RRGGBB   set (hex) RGB value\n\n");
-	fprintf(stderr, "  -d          debug output\n");
-	fprintf(stderr, "  -h          help\n");
+	fprintf(stderr, "bacon [MODE] [OPTIONS..]\n");
+	fprintf(stderr, "MODE:\n");
+	fprintf(stderr, "  -l           cpu load (default)\n");
+	fprintf(stderr, "  -c           color cycle\n");
+	fprintf(stderr, "  -p           pulse\n");
+	fprintf(stderr, "  -o           one shot set color\n");
+	fprintf(stderr, "OPTIONS:\n");
+	fprintf(stderr, "  -b           heart beat\n");
+	fprintf(stderr, "  -s SPEED     cycle speed\n");
+	fprintf(stderr, "  -r RRGGBB    set (hex) RGB value\n");
+	fprintf(stderr, "  -d           debug output\n");
+	fprintf(stderr, "  -S           simulate missing hardware\n");
+	fprintf(stderr, "  -h           help\n");
 	fprintf(stderr, "\n");
 }
 
