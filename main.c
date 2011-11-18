@@ -51,8 +51,10 @@ static void writebyte( int byte, unsigned char *out, int *count )
 
 static void rgb_set( int r, int g, int b )
 {
-	if( simulate ) {
+	if( simulate || debug ) {
 		printf("\rR %3d  G %3d  B %3d  ", r, g, b );
+	}
+	if( simulate ) {
 		return;
 	}
 	unsigned char out[256];
