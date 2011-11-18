@@ -296,8 +296,6 @@ int main( int argc, char **argv )
 		ftdi_enable_bitbang( &ftdic, CLOCK | DATA );
 	}
 	
-	rgb_set( 0, 0, 0 );
-
 	switch( mode ) {
 	case CPU_LOAD:
 		do_cpu_load();
