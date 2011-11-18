@@ -14,6 +14,7 @@ static struct ftdi_context ftdic;
 enum {
 	CPU_LOAD,
 	COLOR_CYCLE,
+	PULSE,
 	SET_RGB,
 };
 
@@ -146,7 +147,8 @@ static void usage( void )
 void parse_opt( int argc, char **argv )
 {
 	int opt;
-	while ((opt = getopt(argc, argv, "lcs:r:Sdb")) != -1) {
+	int rgb;
+	while ((opt = getopt(argc, argv, "lcs:r:poSdb")) != -1) {
 		switch (opt) {
 		case 'l':
 			mode = CPU_LOAD;
@@ -166,6 +168,8 @@ void parse_opt( int argc, char **argv )
 		case 'o':
 			mode = SET_RGB;
 			break;
+		case 'p':
+			mode = PULSE;
 			break;
 		case 'S':
 			simulate = 1;
@@ -233,6 +237,21 @@ void do_cpu_load( void )
 	}
 }
 
+void do_pulse( void )
+{
+	int tick;
+	for ( ;; ) {
+		double lvl = (sin( (double)tick++ / speed ) + 1) / 2;
+		int r = red   * lvl;
+		int g = green * lvl;
+		int b = blue  * lvl;
+
+		rgb_set( r, g, b );
+
+		usleep( 10000 );
+	}
+}
+
 void do_color_cycle( void )
 {
 	for ( ;; ) {
@@ -278,6 +297,9 @@ int main( int argc, char **argv )
 		break;
 	case COLOR_CYCLE:
 		do_color_cycle();
+		break;
+	case PULSE:
+		do_pulse();
 		break;
 	case SET_RGB:
 		rgb_set( red, green, blue );
