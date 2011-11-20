@@ -22,6 +22,7 @@ enum {
 static int mode  = CPU_LOAD;
 static int speed = 100;
 static int beat;
+static int throb;
 static int simulate;
 static int debug;
 static int red   = 255;
@@ -145,6 +146,7 @@ static void usage( void )
 	fprintf(stderr, "  -o           one shot set color\n");
 	fprintf(stderr, "OPTIONS:\n");
 	fprintf(stderr, "  -b           heart beat\n");
+	fprintf(stderr, "  -t           throb\n");
 	fprintf(stderr, "  -s SPEED     cycle speed\n");
 	fprintf(stderr, "  -r RRGGBB    set (hex) RGB value\n");
 	fprintf(stderr, "  -d           debug output\n");
@@ -157,7 +159,7 @@ void parse_opt( int argc, char **argv )
 {
 	int opt;
 	int rgb;
-	while ((opt = getopt(argc, argv, "lcs:r:poSdbh")) != -1) {
+	while ((opt = getopt(argc, argv, "lcs:r:poSdbth")) != -1) {
 		switch (opt) {
 		case 'l':
 			mode = CPU_LOAD;
@@ -189,6 +191,9 @@ void parse_opt( int argc, char **argv )
 		case 'b':
 			beat = 1;
 			break;
+		case 't':
+			throb = 1;
+			break;
 		case 'h':
 		default: /* '?' */
 			usage();
@@ -206,10 +211,10 @@ void parse_opt( int argc, char **argv )
 
 static int cpu_load;
 
-void set_load( int load, int blue )
+void set_load( int load, int blue, int level )
 {
-	int r = 255 *         load   / 100;
-	int g = 255 * ( 100 - load ) / 100;
+	int r = level *         load   / 100;
+	int g = level * ( 100 - load ) / 100;
 
 	rgb_set( r, g, blue );
 }
@@ -236,15 +241,18 @@ void do_cpu_load( void )
 	while (!stop) {
 		if( cpu_load > load ) {
 			load ++;
-		}
-		else if ( cpu_load < load ) {
+		} else if ( cpu_load < load ) {
 			load --;
 		}	
-		int blue = beat ? 8 * (sin( (double)tick++ / 10 ) + 1) : 0;
+		int blue  = beat  ? 8 * (sin( (double)tick++ / 10 ) + 1) : 0;
+		int t_rate = (100 - cpu_load) / 5;
+		if(t_rate < 5) 
+			t_rate = 5;
+		int level = throb ? 191 + 32 * (sin( (double)tick++ / (double)t_rate ) + 1) : 255;
 		if( debug ) 
-			printf( "cpu load: %3d%%  %3d%%  %3d\n", cpu_load, load, blue );
-		set_load( load, blue );
-		usleep( 10000 );
+			printf( "cpu load: %3d%%  %3d%%  %3d  t %2d  lvl %3d\n", cpu_load, load, blue, t_rate, level );
+		set_load( load, blue, level );
+		do_sleep( 10000 );
 	}
 }
 
