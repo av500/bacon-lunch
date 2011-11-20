@@ -4,6 +4,7 @@
 #include <ftdi.h>
 #include <pthread.h>
 #include <math.h>
+#include <signal.h>
 
 #define CLOCK 0x01		// ORANGE
 #define DATA  0x02		// YELLOW
@@ -26,6 +27,7 @@ static int debug;
 static int red   = 255;
 static int green = 255;
 static int blue  = 255;
+static volatile int stop;
 
 static void writebyte( int byte, unsigned char *out, int *count )
 {
@@ -231,7 +233,7 @@ void do_cpu_load( void )
 
 	pthread_create( &cpu_thread, NULL, get_cpu_load, (void*)300000);
 	
-	for ( ;; ) {
+	while (!stop) {
 		if( cpu_load > load ) {
 			load ++;
 		}
@@ -249,7 +251,7 @@ void do_cpu_load( void )
 void do_pulse( void )
 {
 	int tick;
-	for ( ;; ) {
+	while (!stop) {
 		double lvl = (sin( (double)tick++ / speed ) + 1) / 2;
 		int r = red   * lvl;
 		int g = green * lvl;
@@ -263,10 +265,15 @@ void do_pulse( void )
 
 void do_color_cycle( void )
 {
-	for ( ;; ) {
+	while (!stop) {
 		change_color(  );
 		usleep( 1000000 / speed );
 	}	
+}
+
+void signal_handler( int signal )
+{
+	stop = 1;
 }
 
 int main( int argc, char **argv )
@@ -297,6 +304,8 @@ int main( int argc, char **argv )
 		/* Enable bitbang mode with a single output line */
 		ftdi_enable_bitbang( &ftdic, CLOCK | DATA );
 	}
+	
+	signal( SIGINT, signal_handler );
 	
 	switch( mode ) {
 	case CPU_LOAD:
